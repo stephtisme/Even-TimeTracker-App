@@ -62,7 +62,7 @@ const SCROLL_UP_INCREASES = true
 // Storage
 // ---------------------------------------------------------------------
 
-type Session = { task: number; start: number; end: number }
+type Session = { task: number; start: number; end: number; demo?: boolean }
 type Running = { task: number; start: number }
 
 const K_SESSIONS = 'tt_sessions'
@@ -139,6 +139,69 @@ if (SEED_DEMO_DATA && sessions.length === 0 && !localStorage.getItem(K_SEEDED)) 
   }
   writeJSON(K_SESSIONS, sessions)
   localStorage.setItem(K_SEEDED, '1')
+}
+
+// ---------------------------------------------------------------------
+// Demo week — fills last week and this week (up to now) with realistic
+// sessions so Reports looks alive in a recording. Demo sessions are tagged
+// and regenerated each day; anything you track yourself is never touched.
+// Set DEMO_WEEK to false to stop adding it (existing demo sessions are
+// removed on the next launch).
+// ---------------------------------------------------------------------
+const DEMO_WEEK = true
+const K_DEMO = 'tt_demo_week'
+
+// DEMO-START
+// [task position in the list, start hour, start minute, minutes]
+const DEMO_WEEKDAY: [number, number, number, number][] = [
+  [2, 6, 30, 50], // Gym
+  [0, 9, 0, 60], // Meetings
+  [1, 10, 15, 75], // Brief Write-up
+  [3, 12, 30, 30], // Housework
+  [0, 13, 30, 90], // Meetings
+  [1, 15, 30, 60], // Brief Write-up
+  [3, 18, 30, 25], // Housework
+  [4, 20, 0, 90], // Watching TV
+]
+const DEMO_WEEKEND: [number, number, number, number][] = [
+  [2, 9, 0, 60],
+  [3, 11, 0, 90],
+  [4, 14, 0, 120],
+  [1, 16, 30, 45],
+]
+
+function demoSessions(now: number, taskIds: number[]): Session[] {
+  const out: Session[] = []
+  const first = addDays(startOfWeek(now), -7) // last Monday
+  for (let day = first; day <= now; day = addDays(day, 1)) {
+    const dow = new Date(day).getDay() // 0 = Sunday
+    const plan = dow === 0 || dow === 6 ? DEMO_WEEKEND : DEMO_WEEKDAY
+    plan.forEach(([pos, hh, mm, dur], n) => {
+      const id = taskIds[pos]
+      if (id === undefined) return
+      if (pos === 2 && dow === 2) return // no gym on Tuesdays
+      const jitter = ((dow * 7 + n * 5 + pos * 3) % 17) - 6 // varies by day, same every run
+      const d = new Date(day)
+      d.setHours(hh, mm, 0, 0)
+      const start = d.getTime()
+      const end = start + Math.max(10, dur + jitter) * 60000
+      if (end > now) return // never invent time that hasn't happened yet
+      out.push({ task: id, start, end, demo: true })
+    })
+  }
+  return out
+}
+// DEMO-END
+
+{
+  const stamp = String(startOfDay(Date.now()))
+  const had = sessions.some((x) => x.demo)
+  if ((DEMO_WEEK && localStorage.getItem(K_DEMO) !== stamp) || (!DEMO_WEEK && had)) {
+    sessions = sessions.filter((x) => !x.demo)
+    if (DEMO_WEEK) sessions.push(...demoSessions(Date.now(), active().map((t) => t.id)))
+    writeJSON(K_SESSIONS, sessions)
+    localStorage.setItem(K_DEMO, stamp)
+  }
 }
 
 // ---------------------------------------------------------------------
