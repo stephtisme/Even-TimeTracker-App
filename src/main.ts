@@ -3,6 +3,7 @@ import {
   TextContainerProperty,
   TextContainerUpgrade,
   CreateStartUpPageContainer,
+  RebuildPageContainer,
   OsEventTypeList,
 } from '@evenrealities/even_hub_sdk'
 
@@ -45,7 +46,7 @@ const MAX_NAME = 20 // report column widened so "Name - 12h 59m" should still fi
 
 // Seeds a few past days of sample sessions once, so Reports has something
 // to show. Set to false for a clean slate (and clear localStorage to remove).
-const SEED_DEMO_DATA = false
+const SEED_DEMO_DATA = true
 
 // There is no bold on the glasses. Emphasis comes from bordered boxes around
 // the report title and total. As an extra, set this to true to dim the report
@@ -148,7 +149,7 @@ if (SEED_DEMO_DATA && sessions.length === 0 && !localStorage.getItem(K_SEEDED)) 
 // Set DEMO_WEEK to false to stop adding it (existing demo sessions are
 // removed on the next launch).
 // ---------------------------------------------------------------------
-const DEMO_WEEK = false
+const DEMO_WEEK = true
 const K_DEMO = 'tt_demo_week'
 
 // DEMO-START
@@ -789,7 +790,7 @@ function show(name: Screen, cursorAt = 0) {
   top = 0
   enqueue(async () => {
     if (screen !== name) return // user already moved on; the newer rebuild handles it
-    await bridge.rebuildPageContainer(buildScreen(name))
+    await bridge.rebuildPageContainer(new RebuildPageContainer(buildScreen(name)))
     lastSent.clear() // a rebuild redraws every container from scratch
   })
 }
