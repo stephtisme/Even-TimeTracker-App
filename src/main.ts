@@ -3,6 +3,7 @@ import {
   TextContainerProperty,
   TextContainerUpgrade,
   CreateStartUpPageContainer,
+  RebuildPageContainer,
   OsEventTypeList,
 } from '@evenrealities/even_hub_sdk'
 
@@ -789,7 +790,7 @@ function show(name: Screen, cursorAt = 0) {
   top = 0
   enqueue(async () => {
     if (screen !== name) return // user already moved on; the newer rebuild handles it
-    await bridge.rebuildPageContainer(buildScreen(name))
+    await bridge.rebuildPageContainer(new RebuildPageContainer(buildScreen(name)))
     lastSent.clear() // a rebuild redraws every container from scratch
   })
 }
